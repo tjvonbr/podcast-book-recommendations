@@ -4,25 +4,31 @@ import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Popover } from "@/components/ui/popover";
 
-type SpotifyImage = { url: string; width?: number; height?: number };
+export type ItunesPodcast = {
+  collectionId?: number
+  trackId?: number
+  artistName?: string
+  collectionName?: string
+  trackName?: string
+  collectionViewUrl?: string
+  trackViewUrl?: string
+  feedUrl?: string
+  artworkUrl600?: string
+  artworkUrl100?: string
+  artworkUrl60?: string
+  releaseDate?: string
+  primaryGenreName?: string
+  trackCount?: number
+  country?: string
+}
 
-type Artist = { id: string; name: string; images?: SpotifyImage[] };
-type Album = { id: string; name: string; images?: SpotifyImage[]; artists?: Artist[] };
-type Track = { id: string; name: string; album?: Album; artists?: Artist[] };
-type Show = { id: string; name: string; publisher?: string; images?: SpotifyImage[]; description?: string };
+export type ItunesSearchResponse = {
+  resultCount?: number
+  results?: ItunesPodcast[]
+}
 
-export type SearchPayload = {
-  artists?: { items?: Artist[] };
-  albums?: { items?: Album[] };
-  tracks?: { items?: Track[] };
-  shows?: { items?: Show[] };
-};
-
-function getImageUrl(images?: SpotifyImage[]): string | undefined {
-  if (!images || images.length === 0) return undefined;
-  // choose the medium-sized image if possible
-  const sorted = [...images].sort((a, b) => (a.width || 0) - (b.width || 0));
-  return sorted[Math.floor(sorted.length / 2)]?.url || sorted[0]?.url;
+function getArtworkUrl(p: ItunesPodcast): string | undefined {
+  return p.artworkUrl600 || p.artworkUrl100 || p.artworkUrl60
 }
 
 function Section<T>({ title, items, render }: { title: string; items?: T[]; render: (item: T) => React.ReactNode }) {
@@ -52,81 +58,30 @@ function Section<T>({ title, items, render }: { title: string; items?: T[]; rend
   );
 }
 
-export default function SearchResults({ data }: { data: SearchPayload | null }) {
+export default function SearchResults({ data }: { data: ItunesSearchResponse | null }) {
   const normalized = useMemo(() => data || {}, [data]);
 
   return (
     <div className="flex flex-col gap-8 w-full max-w-5xl">
-      <Section<Show>
-        title="Shows"
-        items={normalized.shows?.items}
-        render={(show) => (
+      <Section<ItunesPodcast>
+        title="Podcasts"
+        items={normalized.results}
+        render={(pod) => (
           <>
-            <CardTitle>{show.name}</CardTitle>
-            <CardDescription>{show.publisher || "Show"}</CardDescription>
+            <CardTitle>{pod.collectionName || pod.trackName}</CardTitle>
+            <CardDescription>{pod.artistName || pod.primaryGenreName || "Podcast"}</CardDescription>
             <CardContent>
-              {getImageUrl(show.images) ? (
+              {getArtworkUrl(pod) ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={getImageUrl(show.images)} alt={show.name} className="w-full h-40 object-cover rounded-md" />
+                <img src={getArtworkUrl(pod)} alt={pod.collectionName || pod.trackName || "Podcast artwork"} className="w-full h-40 object-cover rounded-md" />
               ) : (
                 <div className="text-sm text-black/60 dark:text-white/60">No image</div>
               )}
-            </CardContent>
-          </>
-        )}
-      />
-      <Section<Artist>
-        title="Artists"
-        items={normalized.artists?.items}
-        render={(artist) => (
-          <>
-            <CardTitle>{artist.name}</CardTitle>
-            <CardDescription>Artist</CardDescription>
-            <CardContent>
-              {getImageUrl(artist.images) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={getImageUrl(artist.images)} alt={artist.name} className="w-full h-40 object-cover rounded-md" />
-              ) : (
-                <div className="text-sm text-black/60 dark:text-white/60">No image</div>
-              )}
-            </CardContent>
-          </>
-        )}
-      />
-
-      <Section<Album>
-        title="Albums"
-        items={normalized.albums?.items}
-        render={(album) => (
-          <>
-            <CardTitle>{album.name}</CardTitle>
-            <CardDescription>{album.artists?.map((a) => a.name).join(", ")}</CardDescription>
-            <CardContent>
-              {getImageUrl(album.images) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={getImageUrl(album.images)} alt={album.name} className="w-full h-40 object-cover rounded-md" />
-              ) : (
-                <div className="text-sm text-black/60 dark:text-white/60">No image</div>
-              )}
-            </CardContent>
-          </>
-        )}
-      />
-
-      <Section<Track>
-        title="Tracks"
-        items={normalized.tracks?.items}
-        render={(track) => (
-          <>
-            <CardTitle>{track.name}</CardTitle>
-            <CardDescription>{track.artists?.map((a) => a.name).join(", ")}</CardDescription>
-            <CardContent>
-              {getImageUrl(track.album?.images) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={getImageUrl(track.album?.images)} alt={track.name} className="w-full h-40 object-cover rounded-md" />
-              ) : (
-                <div className="text-sm text-black/60 dark:text-white/60">No image</div>
-              )}
+              <div className="mt-3 text-xs text-black/70 dark:text-white/70">
+                {pod.primaryGenreName ? <span className="mr-2">{pod.primaryGenreName}</span> : null}
+                {pod.trackCount ? <span className="mr-2">{pod.trackCount} episodes</span> : null}
+                {pod.country ? <span className="mr-2">{pod.country}</span> : null}
+              </div>
             </CardContent>
           </>
         )}

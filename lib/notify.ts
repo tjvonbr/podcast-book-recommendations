@@ -29,5 +29,3 @@ export async function notifyNewEpisode(n: Notification): Promise<void> {
     throw new Error(`Slack webhook failed: ${res.status} ${res.statusText} ${body}`);
   }
 }
-
-
